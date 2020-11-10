@@ -17,7 +17,7 @@ def get_pages(token, nb):
         pages.append(j)
     return pages
 
-pages = get_pages(token,295)
+pages = get_pages(token,1)
 
 # https://www.proxy-list.download/HTTPS
 proxies = pd.read_csv('proxy_list.txt', header = None)
@@ -52,7 +52,6 @@ def get_data(pages,proxies):
                         print(par)
                         sys.exit()
                         j = el[par]
-
                         l.append(j)
                     l = pd.DataFrame(l, columns = [par])
                     df_f = pd.concat([df_f,l], axis = 1)
