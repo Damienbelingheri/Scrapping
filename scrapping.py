@@ -5,6 +5,7 @@ import sys
 import itertools as it 
 import random
 import time
+import csv
 from fake_useragent import UserAgent
 
 token = 'https://www.sous-traiter.com/annuaire/liste.php?metier=Usinage,%20M%C3%A9canique&page='
@@ -17,9 +18,7 @@ def get_pages(token, nb):
         pages.append(j)
     return pages 
     
-pages = get_pages(token,295)
-
-
+pages = get_pages(token,30)
 
 proxies = pd.read_csv('proxy_list.txt', header = None)
 proxies = proxies.values.tolist()
@@ -34,35 +33,62 @@ def get_data(pages,proxies):
     ua = UserAgent()
     proxy_pool = it.cycle(proxies)
 
+    rows = []
+    rows.append(['Company Name', 'Webpage', 'Description', 'Location','Email','Phone'])
     while len(pages) > 0:
         for i in pages:
             response = requests.get(i)
 
             soup = bs4.BeautifulSoup(response.text, 'html.parser')
-            em_box = soup.find("a", {"class":"button-reveal"})
-            result = em_box['href']
+            em_box = soup.find_all("a", {"class":"button-reveal"})
+            for result in em_box:
+                result = result['href']
 
-            token2 = 'https://www.sous-traiter.com/annuaire/'+ result
-            # print (token)
-            token2 = 'https://www.sous-traiter.com/annuaire/societe-sds--sous-traitance-depannages-services--01700-neyron-9535.html'
-            responsePage = requests.get(token2)
-            soup2 = bs4.BeautifulSoup(responsePage.text, 'html.parser')
-            em_box2 = soup2.find("section", {"id":"section-infos"})
-            # print(em_box2.findAll("span",{"class":"subtitle"}))
-            print(em_box2)
-            parameters = ['href[mailto]', 'href[tel]']
-            df_f = pd.DataFrame()
-            for par in parameters:
-                l = []
-                for el in em_box2:
-                    print (par)
-                    sys.exit()
-                    j = el[par]
-                    l.append(j)
-                l = pd.DataFrame(l, columns = [par])
-                df_f = pd.concat([df_f,l], axis = 1)
+                urlpage = 'https://www.sous-traiter.com/annuaire/'+ result
+                
+                # query the website and return the html to the variable 'page'
+                page = requests.get(urlpage)
+                # parse the html using beautiful soup and store in variable 'soup'
+                soup = bs4.BeautifulSoup(page.text, 'html.parser')
+                # find results within table
+                table = soup.find('section',{'id': 'section-infos'})
+
+                data = table.find_all('span')
+                a = table.find_all('a',href=True)
+                #print('Number of results', len(results))
+
+                # create and write headers to a list 
+                rows = []
+                rows.append(['Company Name', 'Webpage', 'Description', 'Location','Email','Phone'])
+
+
+
+
+                company =  data[0].getText()
+                print (company)
+                location = data[2].getText() +" "+ data[3].getText() + " " + data[4].getText()
+                print (location)
+                phone = a[0]['href'].strip('tel:').replace(" ", " ")
+                fax = data[6].getText()
+                email = a[2].getText() 
+                website= data[9].getText()
+
+
+
+                # loop over results
+
+
+                rows.append([company,location, phone, fax,email, website])
+                print(rows)
+
+                with open('techtrack100.csv','w', newline='') as f_output:
+                    csv_output = csv.writer(f_output)
+                    csv_output.writerows(rows)
+
             sys.exit()
-                        
+
+
+    
 
 data = get_data(pages,proxies)
 
